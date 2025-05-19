@@ -3,15 +3,22 @@
 require __DIR__ . '/db.inc.php';
 require __DIR__ . '/function.php';
 
-$messagePerPage = 5;
-$currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-if ($currentPage < 1) {
-    $currentPage = 1;
-}
 
-$offset = ($currentPage - 1) * $messagePerPage;
-var_dump($currentPage);
-var_dump($offset);
+$messagesPerPage = 3;
+
+// Search feature
+$searchTerm = isset($_GET['search']) ? strip_tags(trim($_GET['search'])) : '';
+
+// Pagination feature
+
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+
+
+if ($currentPage < 1) $currentPage = 1;
+$offset = ceil($currentPage - 1) * $messagesPerPage;
+
+
+
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -26,18 +33,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+// Searching values from the db
+if (!empty($searchTerm)) {
+    $stmt = $pdo->prepare("
+        SELECT * FROM guestentry 
+        WHERE name LIKE :search OR message LIKE :search 
+        ORDER BY created_at DESC 
+        LIMIT :limit OFFSET :offset
+    ");
+    $stmt->bindValue(':search', "%$searchTerm%", PDO::PARAM_STR);
+} else {
+    $stmt = $pdo->prepare("
+        SELECT * FROM guestentry 
+        ORDER BY created_at DESC 
+        LIMIT :limit OFFSET :offset
+    ");
+}
 
-$stmt = $pdo->prepare("SELECT * FROM `guestentry` ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
-$stmt->bindValue(':limit', $messagePerPage, PDO::PARAM_INT);
+$stmt->bindValue(':limit', $messagesPerPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
-
 $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$totalStmt = $pdo->prepare("SELECT COUNT(*) FROM diaryquery");
-$totalMessages = $totalStmt->fetchColumn();
+// Count Total Messages for Pagination
+if (!empty($searchTerm)) {
+    $countStmt = $pdo->prepare("
+        SELECT COUNT(*) FROM guestentry 
+        WHERE name LIKE :search OR message LIKE :search
+    ");
+    $countStmt->bindValue(':search', "%$searchTerm%", PDO::PARAM_STR);
+    $countStmt->execute();
+    $totalMessages = $countStmt->fetchColumn();
+} else {
+    $countStmt = $pdo->query("SELECT COUNT(*) FROM guestentry");
+    $totalMessages = $countStmt->fetchColumn();
+}
 
-$totalPages = ceil($totalMessages / $messagePerPage);
+$totalPages = ceil($totalMessages / $messagesPerPage);
+
+
 
 ?>
 
@@ -54,6 +88,25 @@ $totalPages = ceil($totalMessages / $messagePerPage);
 
 <body>
     <div class="container">
+        <!-- Display search input field -->
+        <form action="index.php" method="GET">
+            <input type="text" name="search" placeholder="Search message..." value="<?= e($_GET['search'] ?? ''); ?>">
+            <button type="submit">Search</button>
+        </form>
+
+        <?php
+        if (!empty($searchTerm)) {
+            foreach ($messages as $msg) {
+                echo "<div>";
+                echo "<strong>" . e($msg['name']) . "</strong><br>";
+                echo "<p>" . nl2br(e($msg['message'])) . "</p>";
+                echo "<small>" . $msg['created_at'] . "</small>";
+                echo "</div><hr>";
+            }
+        }
+
+        ?>
+
         <h1>Guestbook</h1>
 
         <h3>Leave a Message</h3>
@@ -74,14 +127,18 @@ $totalPages = ceil($totalMessages / $messagePerPage);
             <?php endforeach; ?>
         </div>
         <?php
-
         if ($totalPages > 1) {
             echo "<div class='pagination'>";
             for ($i = 1; $i <= $totalPages; $i++) {
+                $link = "?page=$i";
+                if (!empty($searchTerm)) {
+                    $link .= "&search=" . urlencode($searchTerm);
+                }
+
                 if ($i == $currentPage) {
-                    echo "<strong>$i</strong>";
+                    echo "<strong>$i</strong> ";
                 } else {
-                    echo "<a href='?page=$i'>$i</a>";
+                    echo "<a href='$link'>$i</a> ";
                 }
             }
             echo "</div>";
