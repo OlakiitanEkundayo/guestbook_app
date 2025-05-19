@@ -7,7 +7,8 @@ A simple and interactive web-based guestbook application built with PHP.
 - Users can leave a message
 - Displays all messages in reverse chronological order
 - Responsive design using [HTML & CSS]
-- Pagination
+- Pagination feature
+- Search feature
 
 ## 🛠 Tech Stack
 
