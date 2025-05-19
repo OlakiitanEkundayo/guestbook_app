@@ -123,3 +123,24 @@ form {
   background-color: #e0e0e0;
   color: #000;
 }
+
+.searchForm {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.searchFormInput {
+  flex: 1;
+  padding: 8px;
+  font-size: 16px;
+  height: 40px;
+  box-sizing: border-box;
+}
+
+.cta {
+  padding: 0 16px;
+  font-size: 16px;
+  height: 40px;
+  cursor: pointer;
+}

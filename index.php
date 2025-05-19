@@ -10,14 +10,11 @@ $messagesPerPage = 3;
 $searchTerm = isset($_GET['search']) ? strip_tags(trim($_GET['search'])) : '';
 
 // Pagination feature
-
 $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
 
 if ($currentPage < 1) $currentPage = 1;
 $offset = ceil($currentPage - 1) * $messagesPerPage;
-
-
 
 
 
@@ -89,9 +86,9 @@ $totalPages = ceil($totalMessages / $messagesPerPage);
 <body>
     <div class="container">
         <!-- Display search input field -->
-        <form action="index.php" method="GET">
-            <input type="text" name="search" placeholder="Search message..." value="<?= e($_GET['search'] ?? ''); ?>">
-            <button type="submit">Search</button>
+        <form class="searchForm" action="index.php" method="GET">
+            <input class="searchFormInput" type="text" name="search" placeholder="Search message..." value="<?= e($_GET['search'] ?? ''); ?>">
+            <button class="cta" type="submit">Search</button>
         </form>
 
         <?php
